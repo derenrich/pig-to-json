@@ -46,7 +46,6 @@ public class ToJson extends EvalFunc<String> {
 		throw new IOException("Could not find schema in UDF context");
 	    }
 
-	    Schema schema = null;
 	    try {
 		schema = Utils.getSchemaFromString(strSchema);
 	    }
@@ -55,28 +54,7 @@ public class ToJson extends EvalFunc<String> {
 		e.printStackTrace();
 	    }
 	}
-
         try {
-	    /*
-            // Parse the schema from the string stored in the properties object.
-	    List<String> outer_json = new ArrayList<String>();
-	    for (int i =1 ; i < input.size(); i ++) {
-		Object field = input.get(i);
-		Object jsonObject = fieldToJson(field, schema.getFields().get(i));
-		String inner_json = jsonObject.toString();
-		outer_json.add(inner_json);
-	    }
-	    StringBuilder sb = new StringBuilder("[");
-	    for (int i = 0; i < outer_json.size(); i ++) {
-		sb.append(outer_json.get(i));
-		if (i < outer_json.size() - 1) {
-		    sb.append(",");
-		    outer_json.set(i, null); // attempt to free memory
-		}
-	    }
-	    sb.append("]");
-            return sb.toString();
-	    */
 	    Schema s = new Schema(schema.getFields());
 	    FieldSchema fs = new FieldSchema(null, s);
 	    return tupleToJson(input, fs).toString();
