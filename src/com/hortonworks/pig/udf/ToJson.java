@@ -18,13 +18,17 @@ import org.json.simple.JSONObject;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Properties;
+import java.lang.StringBuilder;
+
 
 public class ToJson extends EvalFunc<String> {
 
     private static final Log LOG = LogFactory.getLog(ToJson.class);
 
     Properties myProperties = null;
+    private Schema schema = null;
 
     public String exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
@@ -35,28 +39,47 @@ public class ToJson extends EvalFunc<String> {
             myProperties = UDFContext.getUDFContext().getUDFProperties(this.getClass());
         }
 
-        String strSchema = myProperties.getProperty("horton.json.udf.schema");
+	if (schema == null) {
+	    String strSchema = myProperties.getProperty("horton.json.udf.schema");
+	    // You must set the schema or we cannot convert to JSON - duh!
+	    if (strSchema == null) {
+		throw new IOException("Could not find schema in UDF context");
+	    }
 
-        // You must set the schema or we cannot convert to JSON - duh!
-        if (strSchema == null) {
-            throw new IOException("Could not find schema in UDF context");
-        }
+	    Schema schema = null;
+	    try {
+		schema = Utils.getSchemaFromString(strSchema);
+	    }
+	    catch(Exception e) {
+		LOG.error("Unable to parse schema: " + strSchema);
+		e.printStackTrace();
+	    }
+	}
 
-        Schema schema = null;
         try {
-            schema = Utils.getSchemaFromString(strSchema);
-        }
-        catch(Exception e) {
-            LOG.error("Unable to parse schema: " + strSchema);
-            e.printStackTrace();
-        }
-
-        try {
+	    /*
             // Parse the schema from the string stored in the properties object.
-            Object field = input.get(0);
-            Object jsonObject = fieldToJson(field, schema.getFields().get(0));
-            String json = jsonObject.toString();
-            return json;
+	    List<String> outer_json = new ArrayList<String>();
+	    for (int i =1 ; i < input.size(); i ++) {
+		Object field = input.get(i);
+		Object jsonObject = fieldToJson(field, schema.getFields().get(i));
+		String inner_json = jsonObject.toString();
+		outer_json.add(inner_json);
+	    }
+	    StringBuilder sb = new StringBuilder("[");
+	    for (int i = 0; i < outer_json.size(); i ++) {
+		sb.append(outer_json.get(i));
+		if (i < outer_json.size() - 1) {
+		    sb.append(",");
+		    outer_json.set(i, null); // attempt to free memory
+		}
+	    }
+	    sb.append("]");
+            return sb.toString();
+	    */
+	    Schema s = new Schema(schema.getFields());
+	    FieldSchema fs = new FieldSchema(null, s);
+	    return tupleToJson(input, fs).toString();
         }
         catch(Exception e){
             throw new IOException("Caught exception processing input row ", e);
